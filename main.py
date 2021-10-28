@@ -10,9 +10,8 @@ from itertools import product
 from sklearn.utils import check_X_y, check_random_state
 from sklearn.base import clone
 
+from sklearn.model_selection import train_test_split
 from imblearn.pipeline import Pipeline
-from sklearn.model_selection import cross_validate
-from sklearn.model_selection import StratifiedKFold
 
 
 # Import methods for classifications and imbalanced dataset
@@ -75,18 +74,26 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
     for dataset_name, (X, y) in datasets:
         for classifier in classifiers:
             for oversampling_method in oversampling_methods:
-                print("Dataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0])
+                print("\nDataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0], "\n")
                 for random_state in random_states:
-                    method = None
-                    classifier[1].set_params(random_state=random_state)
-                    if oversampling_method[1] is not None:
-                        oversampling_method[1].set_params(random_state=random_state)
-                        method = Pipeline([oversampling_method, classifier])
-                    else:
-                        method = Pipeline([classifier])
-                    cv = StratifiedKFold(n_splits=2, random_state=random_state, shuffle=True)
-                    scores = cross_validate(method, X, y, cv=cv, scoring=scoring)
-                    print(scores)
+                    try:
+                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+                        if oversampling_method[1] is not None:
+                            if ('random_state' in oversampling_method[1].get_params().keys()):
+                                oversampling_method[1].set_params(random_state=random_state)
+                            X_train, y_train = oversampling_method[1].fit_resample(X_train.to_numpy(), y_train.to_numpy())
+                            X_train = pd.DataFrame(X_train)
+                            y_train = pd.DataFrame(y_train)
+                        if ('random_state' in classifier[1].get_params().keys()):
+                                classifier[1].set_params(random_state=random_state)
+                        classifier[1].fit(X_train.values, y_train.values.ravel())
+                        #print('train score:', classifier[1].score(X_train.values, y_train.values))
+                        #print('test score:', classifier[1].score(X_test.values, y_test.values))
+                    except Exception as e:
+                        print('Error:', e)
+                        print('Oversampler:', oversampling_method)
+                        print('Classifier:', classifier)
+                        exit() 
                     iterations += 1
                     progress_bar.update(iterations)                    
 
@@ -122,34 +129,16 @@ def main(n_random_states = 5):
             }]
         ),
         (
-            'B1-SMOTE', BorderlineSMOTE(kind='borderline1'),
+            'B1-SMOTE', BorderlineSMOTE(kind='borderline-1'),
             [{
                 'k_neighbors': [3,5,20]
             }]
         ),
         (
-            'B2-SMOTE', BorderlineSMOTE(kind='borderline2'),
+            'B2-SMOTE', BorderlineSMOTE(kind='borderline-2'),
             [{
                 'k_neighbors': [3,5,20]
             }]
-        ),
-        (
-            'KMeansSMOTE', KMeansSMOTE(),
-            [
-                {
-                    'cluster_balance_threshold': [1,float('Inf')],
-                    'density_exponent': [0, 2, None], 
-                    'k_neighbors': [3,5,20, float('Inf')],
-                    'kmeans_estimator': [2,20,50,100,250,500],
-                    'n_jobs':[-1]
-                },
-                {
-                    'cluster_balance_threshold': [float('Inf')],
-                    'kmeans_estimator': [1],
-                    'k_neighbors': [3,5],
-                    'n_jobs':[-1]
-                }
-            ]
         )
     ]
 
