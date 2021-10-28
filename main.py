@@ -7,20 +7,17 @@ from os import listdir, urandom
 from re import match, sub
 
 from itertools import product
-from sklearn.utils import check_X_y, check_random_state
 from sklearn.base import clone
 
 from sklearn.model_selection import train_test_split
-from imblearn.pipeline import Pipeline
 
 
 # Import methods for classifications and imbalanced dataset
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
-from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE, KMeansSMOTE
+from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE, SMOTEN
 from imblearn.under_sampling import RandomUnderSampler
-
+from sklearn.ensemble import RandomForestClassifier
 
 output_path = "datasets/"
 
@@ -64,6 +61,14 @@ def check_models(models, model_type):
         raise ValueError("The {model_type}s should be a list of ({model_type} name, {model_type}) pairs or ({model_type} name, {model_type}, parameters grid) triplets.".format(model_type=model_type))
     return flat_models
 
+def score_method(X_train, X_test, y_train, y_test, oversampler, classifier):
+    return {
+        'train-score': classifier[1].score(X_train.values, y_train.values),
+        'test-score': classifier[1].score(X_test.values, y_test.values),
+        'classifier': classifier[1],
+        'oversampler': oversampler[1]
+    }
+
 def execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring):
     print("Executing methods")
     classifiers = check_models(classifiers, "classifier")
@@ -71,10 +76,12 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
     max_iter = len(random_states) * len(datasets) * len(oversampling_methods) * len(classifiers)
     progress_bar = ProgressBar(redirect_stdout=False, max_value=max_iter)
     iterations = 0
+    all_results = []
     for dataset_name, (X, y) in datasets:
+        results = []
         for classifier in classifiers:
             for oversampling_method in oversampling_methods:
-                print("\nDataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0], "\n")
+                #print("\nDataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0], "\n")
                 for random_state in random_states:
                     try:
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -87,6 +94,7 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
                         if ('random_state' in classifier[1].get_params().keys()):
                                 classifier[1].set_params(random_state=random_state)
                         classifier[1].fit(X_train.values, y_train.values.ravel())
+                        results.append(score_method(X_train, X_test, y_train, y_test, oversampling_method, classifier))
                         #print('train score:', classifier[1].score(X_train.values, y_train.values))
                         #print('test score:', classifier[1].score(X_test.values, y_test.values))
                     except Exception as e:
@@ -95,7 +103,9 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
                         print('Classifier:', classifier)
                         exit() 
                     iterations += 1
-                    progress_bar.update(iterations)                    
+                    progress_bar.update(iterations)
+        all_results.append((dataset_name, results))
+        print(all_results)                 
 
 
 def main(n_random_states = 5):
@@ -116,14 +126,29 @@ def main(n_random_states = 5):
             [{
                 'n_neighbors': [3,5,8]
             }]
+        ),(
+            'RandomForestClassifier', RandomForestClassifier(),
+            [{
+                'n_estimators': [50, 100, 200],
+                'max_depth': [4, 10, None],
+                'criterion' : ['gini', 'entropy'],
+                'max_features': ['sqrt', 'log2']
+            }]
         )
     ]
 
     oversampling_methods = [
         ('None',None),
         ('RandomOverSampler', RandomOverSampler()),
+        ('RandomUnderSampler', RandomUnderSampler()),
         (
             'SMOTE', SMOTE(),
+            [{
+                'k_neighbors': [3,5,20]
+            }]
+        ),
+        (
+            'SMOTEN', SMOTEN(),
             [{
                 'k_neighbors': [3,5,20]
             }]
@@ -141,8 +166,6 @@ def main(n_random_states = 5):
             }]
         )
     ]
-
-    scoring = ['accuracy']
 
     execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring)
 
