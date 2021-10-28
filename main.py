@@ -19,15 +19,16 @@ from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE, SM
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.ensemble import RandomForestClassifier
 
-output_path = "datasets/"
+input_path = "datasets/"
+output_path = "results/"
 
 csv_separator = ','
 
 def read_datasets():
     datasets = []
-    csv_files = [csv_file for csv_file in listdir(output_path) if match('^.+\.csv$', csv_file)]
+    csv_files = [csv_file for csv_file in listdir(input_path) if match('^.+\.csv$', csv_file)]
     for csv_file in csv_files:
-        dataset = pd.read_csv(join(output_path, csv_file))
+        dataset = pd.read_csv(join(input_path, csv_file))
         X, y = dataset.iloc[:, :-1], dataset.iloc[:, -1]
         dataset_name = sub(".csv", "", csv_file)
         datasets.append((dataset_name, (X, y)))
@@ -104,6 +105,7 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
                         exit() 
                     iterations += 1
                     progress_bar.update(iterations)
+        np.save('{}/{}.npy'.format(output_path, dataset_name), results)
         all_results.append((dataset_name, results))
         print(all_results)                 
 
@@ -166,6 +168,8 @@ def main(n_random_states = 5):
             }]
         )
     ]
+
+    scoring = [] # to be coded later
 
     execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring)
 
