@@ -10,7 +10,7 @@ from itertools import product
 from sklearn.base import clone
 
 from sklearn.model_selection import train_test_split
-
+from sklearn.metrics import f1_score, precision_score, confusion_matrix, roc_auc_score, recall_score
 
 # Import methods for classifications and imbalanced dataset
 from sklearn.neighbors import KNeighborsClassifier
@@ -63,18 +63,27 @@ def check_models(models, model_type):
     return flat_models
 
 def score_method(X_train, X_test, y_train, y_test, oversampler, classifier):
+    y_predict = classifier[1].predict(X_test.values)
     return {
-        'train-score': classifier[1].score(X_train.values, y_train.values),
-        'test-score': classifier[1].score(X_test.values, y_test.values),
+        'train_score': classifier[1].score(X_train.values, y_train.values),
+        'test_score': classifier[1].score(X_test.values, y_test.values),
         'classifier': classifier[1],
-        'oversampler': oversampler[1]
+        'oversampler': oversampler[1],
+        'cm': confusion_matrix(y_test.values, y_predict),
+        'recall_score': recall_score(y_test.values, y_predict),
+        'roc_auc_score': roc_auc_score(y_test.values, y_predict),
+        'precision_score': precision_score(y_test.values, y_predict),
+        'f1_score': f1_score(y_test.values, y_predict),
+        'f1_score_macro': f1_score(y_test.values, y_predict, average='macro'),
+        'f1_score_weighted': f1_score(y_test.values, y_predict, average='weighted')
     }
 
 def execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring):
     print("Executing methods")
     classifiers = check_models(classifiers, "classifier")
     oversampling_methods = check_models(oversampling_methods, "oversampler")
-    max_iter = len(random_states) * len(datasets) * len(oversampling_methods) * len(classifiers)
+    n_random_states = len(random_states)
+    max_iter = n_random_states * len(datasets) * len(oversampling_methods) * len(classifiers)
     progress_bar = ProgressBar(redirect_stdout=False, max_value=max_iter)
     iterations = 0
     all_results = []
@@ -110,64 +119,85 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
         print(all_results)                 
 
 
-def main(n_random_states = 5):
+def main():
     print("Defining parameters")
     # Read dataset
     datasets = read_datasets()
     # Get random states
+    n_random_states = 5
     random_states = select_random_states(n_random_states)
 
-    classifiers = [
-        (
-            'GBM',GradientBoostingClassifier(),
-            [{
-                'n_estimators': [50, 100, 200]
-            }]
-        ),(
-            'KNN',KNeighborsClassifier(),
-            [{
-                'n_neighbors': [3,5,8]
-            }]
-        ),(
-            'RandomForestClassifier', RandomForestClassifier(),
-            [{
-                'n_estimators': [50, 100, 200],
-                'max_depth': [4, 10, None],
-                'criterion' : ['gini', 'entropy'],
-                'max_features': ['sqrt', 'log2']
-            }]
-        )
-    ]
+    debug = True
 
-    oversampling_methods = [
-        ('None',None),
-        ('RandomOverSampler', RandomOverSampler()),
-        ('RandomUnderSampler', RandomUnderSampler()),
-        (
-            'SMOTE', SMOTE(),
-            [{
-                'k_neighbors': [3,5,20]
-            }]
-        ),
-        (
-            'SMOTEN', SMOTEN(),
-            [{
-                'k_neighbors': [3,5,20]
-            }]
-        ),
-        (
-            'B1-SMOTE', BorderlineSMOTE(kind='borderline-1'),
-            [{
-                'k_neighbors': [3,5,20]
-            }]
-        ),
-        (
-            'B2-SMOTE', BorderlineSMOTE(kind='borderline-2'),
-            [{
-                'k_neighbors': [3,5,20]
-            }]
-        )
-    ]
+    if debug:
+        classifiers = [
+            (
+                'RandomForestClassifier', RandomForestClassifier(),
+                [{
+                    'n_estimators': [50, 100, 200],
+                    'max_depth': [4, 10, None],
+                    'criterion' : ['gini', 'entropy'],
+                    'max_features': ['sqrt', 'log2']
+                }]
+            )
+        ]
+
+        oversampling_methods = [
+            ('None',None),
+            ('RandomOverSampler', RandomOverSampler()),
+        ]
+    else:
+        classifiers = [
+            (
+                'GBM',GradientBoostingClassifier(),
+                [{
+                    'n_estimators': [50, 100, 200]
+                }]
+            ),(
+                'KNN',KNeighborsClassifier(),
+                [{
+                    'n_neighbors': [3,5,8]
+                }]
+            ),(
+                'RandomForestClassifier', RandomForestClassifier(),
+                [{
+                    'n_estimators': [50, 100, 200],
+                    'max_depth': [4, 10, None],
+                    'criterion' : ['gini', 'entropy'],
+                    'max_features': ['sqrt', 'log2']
+                }]
+            )
+        ]
+
+        oversampling_methods = [
+            ('None',None),
+            ('RandomOverSampler', RandomOverSampler()),
+            ('RandomUnderSampler', RandomUnderSampler()),
+            (
+                'SMOTE', SMOTE(),
+                [{
+                    'k_neighbors': [3,5,20]
+                }]
+            ),
+            (
+                'SMOTEN', SMOTEN(),
+                [{
+                    'k_neighbors': [3,5,20]
+                }]
+            ),
+            (
+                'B1-SMOTE', BorderlineSMOTE(kind='borderline-1'),
+                [{
+                    'k_neighbors': [3,5,20]
+                }]
+            ),
+            (
+                'B2-SMOTE', BorderlineSMOTE(kind='borderline-2'),
+                [{
+                    'k_neighbors': [3,5,20]
+                }]
+            )
+        ]
 
     scoring = [] # to be coded later
 
