@@ -78,6 +78,21 @@ def score_method(X_train, X_test, y_train, y_test, oversampler, classifier):
         'f1_score_weighted': f1_score(y_test.values, y_predict, average='weighted')
     }
 
+def average_score_method(results):
+    blacklist = ['classifier', 'oversampler']
+    l = len(results)
+    d = {}
+    for i in results[0].keys():
+        if (i in blacklist):
+            d[i] = results[0][i]
+        else:
+            tmp = 0
+            for j in range(l):
+                tmp += results[j][i]
+            tmp = tmp/l
+            d[i] = tmp
+    return d
+
 def execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring):
     print("Executing methods")
     classifiers = check_models(classifiers, "classifier")
@@ -92,6 +107,7 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
         for classifier in classifiers:
             for oversampling_method in oversampling_methods:
                 #print("\nDataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0], "\n")
+                tmp_results = []
                 for random_state in random_states:
                     try:
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -104,7 +120,7 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
                         if ('random_state' in classifier[1].get_params().keys()):
                                 classifier[1].set_params(random_state=random_state)
                         classifier[1].fit(X_train.values, y_train.values.ravel())
-                        results.append(score_method(X_train, X_test, y_train, y_test, oversampling_method, classifier))
+                        tmp_results.append(score_method(X_train, X_test, y_train, y_test, oversampling_method, classifier))
                         #print('train score:', classifier[1].score(X_train.values, y_train.values))
                         #print('test score:', classifier[1].score(X_test.values, y_test.values))
                     except Exception as e:
@@ -114,6 +130,7 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
                         exit() 
                     iterations += 1
                     progress_bar.update(iterations)
+                results.append(average_score_method(tmp_results))
         np.save('{}/{}.npy'.format(output_path, dataset_name), results)
         all_results.append((dataset_name, results))
         print(all_results)                 
@@ -124,10 +141,10 @@ def main():
     # Read dataset
     datasets = read_datasets()
     # Get random states
-    n_random_states = 5
+    n_random_states = 10
     random_states = select_random_states(n_random_states)
 
-    debug = True
+    debug = False
 
     if debug:
         classifiers = [
