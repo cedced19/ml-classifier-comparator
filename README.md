@@ -5,3 +5,15 @@ This repo is inspired from the paper: https://www.sciencedirect.com/science/arti
 
 * https://github.com/felix-last/evaluate-kmeans-smote
 * https://github.com/felix-last/imbalanced-tools
+
+## Requirements
+
+
+### LaTex
+```
+sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng
+```
+
+```
+pip install latex
+```
