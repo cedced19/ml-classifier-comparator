@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Custom
-datasets/*.csv
-results/*.npy
+datasets/**/**.csv
+results/**/**.npy
