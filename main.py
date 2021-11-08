@@ -18,6 +18,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE, SMOTEN
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.ensemble import RandomForestClassifier
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 
 input_path = "datasets/"
 output_path = "results/"
@@ -47,8 +49,26 @@ def _flatten_parameters_list(parameters_list):
         flat_parameters += [dict(zip(parameters_dict.keys(), parameter_product)) for parameter_product in product(*parameters_dict.values())]
     return flat_parameters
 
-def check_models(models, model_type):
-    """Creates individual classifiers and oversamplers from parameters grid."""
+def check_classifiers(models):
+    """Creates individual classifiers from parameters grid."""
+    try:
+        flat_models = []
+        for model_name, model, *param_grid, param_fit in models:
+            if param_grid == []:
+                flat_models += [(model_name, model, param_fit)]
+            else:
+                
+                flat_parameters = _flatten_parameters_list(param_grid[0])
+                print(flat_parameters)
+                for ind, parameters in enumerate(flat_parameters):
+                    flat_models += [(model_name + str(ind + 1), model, param_fit)]
+                    #flat_models += [(model_name + str(ind + 1), clone(model).set_params(**parameters), param_fit)]
+    except:
+        raise ValueError("The classifier should be a list of (classifier name, classifier) pairs or (classifier name, classifier, parameters grid) triplets.")
+    return flat_models
+
+def check_oversamplers(models):
+    """Creates individual oversamplers from parameters grid."""
     try:
         flat_models = []
         for model_name, model, *param_grid in models:
@@ -59,11 +79,11 @@ def check_models(models, model_type):
                 for ind, parameters in enumerate(flat_parameters):
                     flat_models += [(model_name + str(ind + 1), clone(model).set_params(**parameters))]
     except:
-        raise ValueError("The {model_type}s should be a list of ({model_type} name, {model_type}) pairs or ({model_type} name, {model_type}, parameters grid) triplets.".format(model_type=model_type))
+        raise ValueError("The oversampler should be a list of (oversampler name, oversampler) pairs or (oversampler name, oversampler, parameters grid) triplets.")
     return flat_models
 
 def score_method(X_train, X_test, y_train, y_test, oversampler, classifier):
-    y_predict = classifier[1].predict(X_test.values)
+    y_predict = (classifier[1].predict(X_test.values)> 0.5).astype("int32").flatten()
     return {
         'train_score': classifier[1].score(X_train.values, y_train.values),
         'test_score': classifier[1].score(X_test.values, y_test.values),
@@ -95,8 +115,8 @@ def average_score_method(results):
 
 def execute_methods(datasets, random_states, classifiers, oversampling_methods, scoring):
     print("Executing methods")
-    classifiers = check_models(classifiers, "classifier")
-    oversampling_methods = check_models(oversampling_methods, "oversampler")
+    classifiers = check_classifiers(classifiers)
+    oversampling_methods = check_oversamplers(oversampling_methods)
     n_random_states = len(random_states)
     max_iter = n_random_states * len(datasets) * len(oversampling_methods) * len(classifiers)
     progress_bar = ProgressBar(redirect_stdout=False, max_value=max_iter)
@@ -105,21 +125,33 @@ def execute_methods(datasets, random_states, classifiers, oversampling_methods, 
     for dataset_name, (X, y) in datasets:
         results = []
         for classifier in classifiers:
+            # get args for model.fit
+            argv_fit = {}
+            if (len(classifier) >= 3):
+                argv_fit = classifier[2]
+
             for oversampling_method in oversampling_methods:
                 #print("\nDataset: ", dataset_name, ", oversampling method:", oversampling_method[0], ", classifier: ", classifier[0], "\n")
                 tmp_results = []
                 for random_state in random_states:
                     try:
                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+                        
                         if oversampling_method[1] is not None:
                             if ('random_state' in oversampling_method[1].get_params().keys()):
                                 oversampling_method[1].set_params(random_state=random_state)
                             X_train, y_train = oversampling_method[1].fit_resample(X_train.to_numpy(), y_train.to_numpy())
                             X_train = pd.DataFrame(X_train)
                             y_train = pd.DataFrame(y_train)
+                        
+
                         if ('random_state' in classifier[1].get_params().keys()):
                                 classifier[1].set_params(random_state=random_state)
-                        classifier[1].fit(X_train.values, y_train.values.ravel())
+                        
+                        # if (len(classifier) == 5):
+                            # classifier[1].compile(*(classifier[4]))
+
+                        classifier[1].fit(X_train.values, y_train.values.ravel(), **argv_fit)
                         tmp_results.append(score_method(X_train, X_test, y_train, y_test, oversampling_method, classifier))
                         #print('train score:', classifier[1].score(X_train.values, y_train.values))
                         #print('test score:', classifier[1].score(X_test.values, y_test.values))
@@ -144,10 +176,32 @@ def main():
     n_random_states = 10
     random_states = select_random_states(n_random_states)
 
-    debug = False
+    debug = True
 
     if debug:
+        
+        model = Sequential()
+        model.add(Dense(25, activation='relu')) 
+        model.add(Dense(20, activation='relu')) 
+        model.add(Dense(10, activation='relu'))
+        model.add(Dense(1, activation='sigmoid')) # la sortie est forcément un softmax du nombre de classes
+        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
         classifiers = [
+            (
+                'Custom', model,
+                [{}],
+                {'epochs':100, 'verbose':1}
+            )
+        ]
+
+
+        oversampling_methods = [
+            ('None',None),
+            ('RandomOverSampler', RandomOverSampler()),
+        ] 
+
+        """ classifiers = [
             (
                 'RandomForestClassifier', RandomForestClassifier(),
                 [{
@@ -162,7 +216,7 @@ def main():
         oversampling_methods = [
             ('None',None),
             ('RandomOverSampler', RandomOverSampler()),
-        ]
+        ] """
     else:
         classifiers = [
             (
