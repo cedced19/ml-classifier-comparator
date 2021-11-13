@@ -43,6 +43,7 @@ def read_datasets():
     if (custom_dataset != ''):
         tmp = selectFromList(csv_files, custom_dataset+'.csv')
         if (tmp):
+            print("Using " + tmp + " as dataset.") 
             csv_files = [tmp]
         else:
             print("No matching files found.")

@@ -1,7 +1,16 @@
 import numpy as np
 import pandas as pd
 
-dataset = pd.read_csv('datasets/brazil_dataset_french_clean.csv')
+# select specific datasets
+import sys
+default_path = ''
+if (len(sys.argv) != 1):
+    default_path = sys.argv[1]
+
+
+dataset = pd.read_csv('datasets/' + default_path + '.csv')
+
+array = np.load('results/' + default_path + '.npy', allow_pickle=True)
 
 unique, counts = np.unique(dataset.iloc[:, -1], return_counts=True)
 amount = dict(zip(unique, counts))
