@@ -5,9 +5,10 @@ from os.path import join
 from os import listdir
 from re import match
 
-input = "datasets_string/"
+input = "datasets_input/"
 output = "datasets/"
 
+# change here for your own dataset cols
 valid_cols = ['Genre']
 to_scale_cols = ['Moyenne']
 to_convert_cols = ['Departement', 'Origine', 'Mobilite']

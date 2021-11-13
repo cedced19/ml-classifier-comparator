@@ -22,11 +22,30 @@ from sklearn.ensemble import RandomForestClassifier
 input_path = "datasets/"
 output_path = "results/"
 
+def selectFromList(list, item):
+    for i in range(len(list)):
+        if (list[i] == item):
+            return list[i]
+    return False
+
+# select specific datasets
+import sys
+custom_dataset = ''
+if (len(sys.argv) != 1):
+    custom_dataset = sys.argv[1]
+
+# csv separator
 csv_separator = ','
 
 def read_datasets():
     datasets = []
     csv_files = [csv_file for csv_file in listdir(input_path) if match('^.+\.csv$', csv_file)]
+    if (custom_dataset != ''):
+        tmp = selectFromList(csv_files, custom_dataset+'.csv')
+        if (tmp):
+            csv_files = [tmp]
+        else:
+            print("No matching files found.")
     for csv_file in csv_files:
         dataset = pd.read_csv(join(input_path, csv_file))
         X, y = dataset.iloc[:, :-1], dataset.iloc[:, -1]

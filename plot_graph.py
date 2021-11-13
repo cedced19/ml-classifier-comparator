@@ -5,9 +5,16 @@ import matplotlib
 matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 
-dataset = pd.read_csv('datasets/brazil_dataset_french_clean.csv')
+# select specific datasets
+import sys
+default_path = ''
+if (len(sys.argv) != 1):
+    default_path = sys.argv[1]
 
-array = np.load('results/brazil_dataset_french_clean.npy', allow_pickle=True)
+
+dataset = pd.read_csv('datasets/' + default_path + '.csv')
+
+array = np.load('results/' + default_path + '.npy', allow_pickle=True)
 
 recall_list = []
 precision_list = []
