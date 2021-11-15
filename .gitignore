@@ -131,3 +131,7 @@ dmypy.json
 # Custom
 datasets/**/**.csv
 results/**/**.npy
+reports/**/**.html
+!datasets/example/voice.csv
+!reports/example/voice.html
+!results/example/voice.npy

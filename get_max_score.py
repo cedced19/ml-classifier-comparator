@@ -19,7 +19,6 @@ print('Total: ' + str(total))
 for key, value in amount.items():
     print(str(key) + ' : ' + str(value) + ' , ' + str(round(value/total, 4)))
 
-array = np.load('results/brazil_dataset_french_clean.npy', allow_pickle=True)
 
 max_score = 0
 max_score_method = None
