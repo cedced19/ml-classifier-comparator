@@ -84,8 +84,13 @@ def check_models(models, model_type):
         raise ValueError("The {model_type}s should be a list of ({model_type} name, {model_type}) pairs or ({model_type} name, {model_type}, parameters grid) triplets.".format(model_type=model_type))
     return flat_models
 
+#import matplotlib.pyplot as plt
+#from sklearn.metrics import RocCurveDisplay
+
 def score_method(X_train, X_test, y_train, y_test, oversampler, classifier):
     y_predict = classifier[1].predict(X_test.values)
+    #RocCurveDisplay.from_predictions(y_test.values, y_predict)
+    #plt.show()
     return {
         'train_score': classifier[1].score(X_train.values, y_train.values),
         'test_score': classifier[1].score(X_test.values, y_test.values),

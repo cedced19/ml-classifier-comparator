@@ -17,7 +17,8 @@ def getMaxScoreMethod(label, arr):
 def removeRandomStateParam(model):
     if (model != None):
         d=model.get_params()
-        d['random_state'] = None
+        if ('random_state' in d):
+            d['random_state'] = None
         model.set_params(**d)
     return model
 
