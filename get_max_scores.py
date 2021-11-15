@@ -14,6 +14,14 @@ def getMaxScoreMethod(label, arr):
             max_score_method = experiment
     return max_score_method
 
+def removeRandomStateParam(model):
+    if (model != None):
+        d=model.get_params()
+        d['random_state'] = None
+        model.set_params(**d)
+    return model
+
+
 def renderMaxScoreMethod(label, arr):
     d = getMaxScoreMethod(label, arr)
     html = "<h3>Method for: maximum of " + label + "</h3>"
@@ -21,16 +29,36 @@ def renderMaxScoreMethod(label, arr):
     for key, value in d.items():
         if (key == 'oversampler' or key == 'classifier'):
             value = removeRandomStateParam(value)
-        html += "<li>" + key + " "+str(value)+"</li>"
+        if (key == 'cm'): 
+            html += "<li>" + str(key) + ":<br>"  + showCM(value) +"</li>"
+        else:
+            html += "<li>" + key + " " + str(value) + "</li>"
     html+= "</ul></p>"
     return html
 
-def removeRandomStateParam(model):
-    if (model != None):
-        d=model.get_params()
-        d['random_state'] = None
-        model.set_params(**d)
-    return model
+def showCM(cm):
+    cm /= cm.sum()
+    cm = cm*100
+    cm = cm.round(2)
+    html = "<table style=''>\
+    <tr>\
+        <th></th>\
+        <th style='font-weight: bold;'>Negative predicted</th>\
+        <th style='font-weight: bold;'>True predicted</th>\
+    </tr>\
+    <tr>\
+        <td style='font-weight: bold;'>Negative known</td>\
+        <td>TN: {}%</td>\
+        <td>FP: {}%</td>\
+    </tr>\
+    <tr>\
+        <td style='font-weight: bold;'>True known</td>\
+        <td>FN: {}%</td>\
+        <td>TP: {}%</td>\
+    </tr>\
+    </table>".format(cm[0,0], cm[1,0], cm[0,1], cm[1,1])
+    return html
+
 
 def renderHTML(name,arr,dataset):
     if (len(arr) == 0): 

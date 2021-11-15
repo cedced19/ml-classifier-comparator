@@ -18,6 +18,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE, SMOTEN
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 
 input_path = "datasets/"
 output_path = "results/"
@@ -188,12 +190,32 @@ def main():
             (
                 'GBM',GradientBoostingClassifier(),
                 [{
-                    'n_estimators': [50, 100, 200]
+                    'n_estimators': [50, 100, 200],
+                    'loss': ['deviance', 'exponential'],
+                    'max_features': ['sqrt', 'log2']
                 }]
             ),(
                 'KNN',KNeighborsClassifier(),
                 [{
                     'n_neighbors': [3,5,8]
+                }]
+            ),(
+                'SVC',SVC(),
+                [{
+                    'kernel': ['linear', 'poly', 'sigmoid']
+                }]
+            ),(
+                'LinearSVC-l1',LinearSVC(),
+                [{
+                    'penalty': ['l1'],
+                    'loss': ['squared_hinge'],
+                    'dual': [False]
+                }]
+            ),(
+                'LinearSVC-l2',LinearSVC(),
+                [{
+                    'penalty': ['l2'],
+                    'loss': ['hinge', 'squared_hinge']
                 }]
             ),(
                 'RandomForestClassifier', RandomForestClassifier(),
@@ -224,12 +246,6 @@ def main():
             ),
             (
                 'B1-SMOTE', BorderlineSMOTE(kind='borderline-1'),
-                [{
-                    'k_neighbors': [3,5,20]
-                }]
-            ),
-            (
-                'B2-SMOTE', BorderlineSMOTE(kind='borderline-2'),
                 [{
                     'k_neighbors': [3,5,20]
                 }]
